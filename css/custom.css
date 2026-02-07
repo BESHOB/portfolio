@@ -1,0 +1,59 @@
+.container {
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+  padding: 20px 0;
+  background: #141516;
+  color: #fff;
+}
+
+/* Fade effect on edges */
+.container::before,
+.container::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  width: 60px;
+  height: 100%;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.container::before {
+  left: 0;
+  background: linear-gradient(to right, #141516 0%, transparent 100%);
+}
+
+.container::after {
+  right: 0;
+  background: linear-gradient(to left, #141516 0%, transparent 100%);
+}
+
+.horizontal-scrolling-items {
+  display: flex;
+  white-space: nowrap;
+  animation: scrollLeft 20s linear infinite;
+}
+
+.horizontal-scrolling-items2 {
+  animation: scrollRight 25s linear infinite; /* slower speed */
+}
+
+.horizontal-scrolling-items__item {
+  padding: 0 40px;
+  font-size: 32px;
+  font-weight: bold;
+  padding: 10px 50px;
+  
+}
+
+/* Scroll animations */
+@keyframes scrollLeft {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+@keyframes scrollRight {
+  0% { transform: translateX(-50%); }
+  100% { transform: translateX(0); }
+}
