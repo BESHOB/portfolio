@@ -3,20 +3,137 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <!-- Favicon -->
     <link rel="apple-touch-icon" sizes="180x180" href="./assets/logo-Cm8thyLc.png">
     <link rel="icon" type="image/png" sizes="32x32" href="./assets/favicon-32x32-CrXzXWX7.png">
     <link rel="icon" type="image/png" sizes="16x16" href="./assets/favicon-16x16-BbajHFtn.png">
-    <meta property="og:description" content="Hey, my name is Walid Belmahi developer and Graphic designer with 10+ Years of experience, and this is my portfolio website">
-     <meta name="description" content="Hey, my name is Walid Belmahi developer and Graphic designer with 10+ Years of experience, and this is my portfolio website">
+    
+    <!-- Primary Meta Tags -->
+    <meta name="title" content="Walid Belmahi - Creative Developer & Graphic Designer">
+    <meta name="description" content="Creative developer and graphic designer with 10+ years of experience. Specializing in web development, 3D animation, GPU shaders, and digital design. Check out my portfolio and technical research publications.">
+    <meta name="keywords" content="developer, graphic designer, creative coding, web development, 3D animation, shader, portfolio, full-stack">
     <meta name="author" content="Walid Belmahi">
-    <title>Belmahi Walid</title>
+    <meta name="robots" content="index, follow">
+    <meta name="language" content="English">
+    <link rel="canonical" href="https://yourwebsite.com/">
+    
+    <!-- Open Graph Meta Tags (Social Media Sharing) -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://yourwebsite.com/">
+    <meta property="og:title" content="Walid Belmahi - Creative Developer & Graphic Designer">
+    <meta property="og:description" content="Creative developer and graphic designer with 10+ years of experience. Specializing in web development, 3D animation, GPU shaders, and digital design.">
+    <meta property="og:image" content="https://yourwebsite.com/assets/hero-DJCM9H2_.png">
+    <meta property="og:image:type" content="image/png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:site_name" content="Walid Belmahi Portfolio">
+    
+    <!-- Twitter Card Meta Tags -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://walidpro.online/">
+    <meta property="twitter:title" content="Walid Belmahi - Creative Developer & Graphic Designer">
+    <meta property="twitter:description" content="Creative developer and graphic designer. Specializing in web development, 3D animation, GPU shaders, and digital design.">
+    <meta property="twitter:image" content="https://walidpro.online/assets/hero-DJCM9H2_.png">
+    
+    <!-- LinkedIn -->
+    <meta property="linkedin:card" content="summary_large_image">
+    
+    <!-- Schema.org Structured Data (JSON-LD) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org/",
+      "@type": "Person",
+      "name": "Walid Belmahi",
+      "url": "https://walidpro.online",
+      "image": "https://walidpro.online/assets/hero-DJCM9H2_.png",
+      "sameAs": [
+        "https://twitter.com/walid",
+        "https://linkedin.com/in/walid",
+        "https://github.com/walid"
+      ],
+      "jobTitle": "Creative Developer & Graphic Designer",
+      "worksFor": {
+        "@type": "Organization",
+        "name": "Freelance"
+      }
+    }
+    </script>
 
-
-    <script type="module" crossorigin src="./assets/index-D0-WH-YC.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-Cs5nDH8x.css">
+    <title>Walid Belmahi - Creative Developer & Graphic Designer</title>
+    <script type="module" crossorigin src="./assets/index-MHh56FN7.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-CI25D3Dl.css">
   </head>
   <body>
     <div id="root"></div>
+    
+    <!-- Meta Tag Updater Script for SPA Blog Navigation -->
+    <script>
+      window.updateMetaTags = function(config) {
+        // Update or create meta tags
+        const updateMeta = (property, content, isProperty = true) => {
+          let element = document.querySelector(
+            isProperty 
+              ? `meta[property="${property}"]` 
+              : `meta[name="${property}"]`
+          );
+          if (!element) {
+            element = document.createElement('meta');
+            element[isProperty ? 'property' : 'name'] = property;
+            document.head.appendChild(element);
+          }
+          element.content = content;
+        };
+
+        // SEO Meta Tags
+        if (config.title) updateMeta('title', config.title, false);
+        if (config.description) updateMeta('description', config.description, false);
+        if (config.keywords) updateMeta('keywords', config.keywords, false);
+        if (config.canonical) updateMeta('canonical', config.canonical, false);
+
+        // Open Graph Tags
+        if (config.og_title) updateMeta('og:title', config.og_title);
+        if (config.og_description) updateMeta('og:description', config.og_description);
+        if (config.og_image) updateMeta('og:image', config.og_image);
+        if (config.og_url) updateMeta('og:url', config.og_url);
+        if (config.og_type) updateMeta('og:type', config.og_type);
+
+        // Twitter Card Tags
+        if (config.twitter_title) updateMeta('twitter:title', config.twitter_title);
+        if (config.twitter_description) updateMeta('twitter:description', config.twitter_description);
+        if (config.twitter_image) updateMeta('twitter:image', config.twitter_image);
+        if (config.twitter_card) updateMeta('twitter:card', config.twitter_card);
+
+        // Update page title
+        if (config.page_title) document.title = config.page_title;
+
+        // Update Schema.org JSON-LD
+        if (config.schema) {
+          let schemaScript = document.querySelector('script[type="application/ld+json"]');
+          if (schemaScript) {
+            schemaScript.textContent = JSON.stringify(config.schema);
+          }
+        }
+      };
+
+      // Reset to default meta tags
+      window.resetMetaTags = function() {
+        window.updateMetaTags({
+          page_title: 'Walid Belmahi - Creative Developer & Graphic Designer',
+          title: 'Walid Belmahi - Creative Developer & Graphic Designer',
+          description: 'Creative developer and graphic designer with 10+ years of experience. Specializing in web development, 3D animation, GPU shaders, and digital design.',
+          og_title: 'Walid Belmahi - Creative Developer & Graphic Designer',
+          og_description: 'Creative developer and graphic designer with 10+ years of experience.',
+          og_image: 'https://walidpro.online/assets/hero-DJCM9H2_.png',
+          og_type: 'website',
+          twitter_title: 'Walid Belmahi - Creative Developer & Graphic Designer',
+          twitter_description: 'Creative developer and graphic designer with 10+ years of experience.',
+          twitter_image: 'https://walidpro.online/assets/hero-DJCM9H2_.png',
+          twitter_card: 'summary_large_image'
+        });
+      };
+    </script>
   </body>
 </html>
+
 
