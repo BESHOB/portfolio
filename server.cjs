@@ -60,6 +60,9 @@ async function startServer() {
   const configPath = import_path.default.join(process.cwd(), "src", "theme-config.json");
   const localMessagesPath = import_path.default.join(process.cwd(), "src", "local_messages.json");
   const localBlogsPath = import_path.default.join(process.cwd(), "src", "dynamic_blogs.json");
+  const localTestimonialsPath = import_path.default.join(process.cwd(), "src", "dynamic_testimonials.json");
+  const localProjectsPath = import_path.default.join(process.cwd(), "src", "dynamic_projects.json");
+  const localProjectsLayoutPath = import_path.default.join(process.cwd(), "src", "dynamic_projects_layout.json");
   let supabaseClient = null;
   function getSupabase() {
     if (!supabaseClient) {
@@ -138,6 +141,73 @@ async function startServer() {
       console.error("Local blog deleting error:", err);
     }
     return false;
+  }
+  async function readLocalTestimonials() {
+    try {
+      if (import_fs.default.existsSync(localTestimonialsPath)) {
+        const parsed = JSON.parse(await import_fs.default.promises.readFile(localTestimonialsPath, "utf-8"));
+        return Array.isArray(parsed) ? parsed : [];
+      }
+    } catch (err) {
+      console.error("Error reading local testimonials:", err);
+    }
+    return [];
+  }
+  async function writeLocalTestimonials(testimonials) {
+    await import_fs.default.promises.writeFile(localTestimonialsPath, JSON.stringify(testimonials, null, 2), "utf-8");
+  }
+  async function readLocalProjects() {
+    try {
+      if (import_fs.default.existsSync(localProjectsPath)) {
+        const data = await import_fs.default.promises.readFile(localProjectsPath, "utf-8");
+        const parsed = JSON.parse(data);
+        if (Array.isArray(parsed)) {
+          return Object.fromEntries(parsed.filter((project) => project && project.id).map((project) => [project.id, project]));
+        }
+        if (parsed && typeof parsed === "object") {
+          const { _order: _storedOrder, ...projects } = parsed;
+          return projects;
+        }
+        return {};
+      }
+    } catch (e) {
+      console.error("Error reading local projects, returning empty map:", e);
+    }
+    return {};
+  }
+  async function writeLocalProjects(projects) {
+    const currentData = import_fs.default.existsSync(localProjectsPath) ? JSON.parse(await import_fs.default.promises.readFile(localProjectsPath, "utf-8")) : {};
+    const storedOrder = Array.isArray(currentData?._order) ? currentData._order : [];
+    await import_fs.default.promises.writeFile(localProjectsPath, JSON.stringify({ _order: storedOrder, ...projects }, null, 2), "utf-8");
+  }
+  async function readLocalProjectOrder() {
+    try {
+      if (import_fs.default.existsSync(localProjectsPath)) {
+        const parsed = JSON.parse(await import_fs.default.promises.readFile(localProjectsPath, "utf-8"));
+        return Array.isArray(parsed?._order) ? parsed._order.filter((id) => typeof id === "string") : [];
+      }
+    } catch (err) {
+      console.error("Error reading local project order:", err);
+    }
+    return [];
+  }
+  async function writeLocalProjectOrder(order) {
+    const projects = await readLocalProjects();
+    await import_fs.default.promises.writeFile(localProjectsPath, JSON.stringify({ _order: order, ...projects }, null, 2), "utf-8");
+  }
+  async function readLocalProjectLayout() {
+    try {
+      if (import_fs.default.existsSync(localProjectsLayoutPath)) {
+        const parsed = JSON.parse(await import_fs.default.promises.readFile(localProjectsLayoutPath, "utf-8"));
+        return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+      }
+    } catch (err) {
+      console.error("Error reading local project layout:", err);
+    }
+    return {};
+  }
+  async function writeLocalProjectLayout(layout) {
+    await import_fs.default.promises.writeFile(localProjectsLayoutPath, JSON.stringify(layout, null, 2), "utf-8");
   }
   app.get("/api/config", async (req, res) => {
     try {
@@ -310,6 +380,109 @@ async function startServer() {
       });
     } catch (err) {
       console.error("Error in DELETE /api/blogs:", err);
+      return res.status(500).json({ error: err.message || "Internal server error" });
+    }
+  });
+  app.get("/api/testimonials", async (_req, res) => {
+    try {
+      return res.json(await readLocalTestimonials());
+    } catch (err) {
+      console.error("Error in GET /api/testimonials:", err);
+      return res.status(500).json({ error: err.message || "Internal server error" });
+    }
+  });
+  app.put("/api/testimonials", async (req, res) => {
+    try {
+      const testimonials = Array.isArray(req.body?.testimonials) ? req.body.testimonials : null;
+      if (!testimonials) return res.status(400).json({ error: "A testimonials array is required." });
+      const sanitizedTestimonials = testimonials.map((testimonial) => ({
+        quote: typeof testimonial.quote === "string" ? testimonial.quote.trim() : "",
+        name: typeof testimonial.name === "string" ? testimonial.name.trim() : "",
+        role: typeof testimonial.role === "string" ? testimonial.role.trim() : "",
+        avatar: typeof testimonial.avatar === "string" ? testimonial.avatar.trim() : ""
+      })).filter((testimonial) => testimonial.quote && testimonial.name);
+      await writeLocalTestimonials(sanitizedTestimonials);
+      return res.json({ success: true, testimonials: sanitizedTestimonials });
+    } catch (err) {
+      console.error("Error in PUT /api/testimonials:", err);
+      return res.status(500).json({ error: err.message || "Internal server error" });
+    }
+  });
+  app.get("/api/projects", async (_req, res) => {
+    try {
+      const projects = await readLocalProjects();
+      return res.json({
+        projects: Object.values(projects).filter(Boolean),
+        deletedIds: Object.keys(projects).filter((id) => projects[id] === null),
+        order: await readLocalProjectOrder(),
+        layout: await readLocalProjectLayout()
+      });
+    } catch (err) {
+      console.error("Error in GET /api/projects:", err);
+      return res.status(500).json({ error: err.message || "Internal server error" });
+    }
+  });
+  app.post("/api/projects", async (req, res) => {
+    try {
+      const { title, category, imageUrl, media, year, galleryColumns } = req.body;
+      if (!title || !category || !year || !imageUrl && (!Array.isArray(media) || media.length === 0)) {
+        return res.status(400).json({ error: "Title, category, year, and either imageUrl or media are required." });
+      }
+      const baseId = title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "") || "project";
+      const projects = await readLocalProjects();
+      const id = projects[baseId] ? `${baseId}-${Date.now()}` : baseId;
+      const project = { id, title, category, imageUrl: imageUrl || void 0, year, media: Array.isArray(media) ? media : void 0, galleryColumns: galleryColumns === 2 ? 2 : 1 };
+      projects[id] = project;
+      await writeLocalProjects(projects);
+      const order = await readLocalProjectOrder();
+      await writeLocalProjectOrder([...order.filter((item) => item !== id), id]);
+      return res.json({ success: true, project });
+    } catch (err) {
+      console.error("Error in POST /api/projects:", err);
+      return res.status(500).json({ error: err.message || "Internal server error" });
+    }
+  });
+  app.put("/api/projects/order", async (req, res) => {
+    try {
+      const order = Array.isArray(req.body?.order) ? req.body.order.filter((id) => typeof id === "string") : null;
+      if (!order) return res.status(400).json({ error: "A project ID order array is required." });
+      const layout = req.body?.layout && typeof req.body.layout === "object" ? req.body.layout : {};
+      await writeLocalProjectOrder(order);
+      await writeLocalProjectLayout(layout);
+      return res.json({ success: true, order, layout });
+    } catch (err) {
+      console.error("Error in PUT /api/projects/order:", err);
+      return res.status(500).json({ error: err.message || "Internal server error" });
+    }
+  });
+  app.put("/api/projects/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { title, category, imageUrl, media, year, galleryColumns } = req.body;
+      if (!title || !category || !year || !imageUrl && (!Array.isArray(media) || media.length === 0)) {
+        return res.status(400).json({ error: "Title, category, year, and either imageUrl or media are required." });
+      }
+      const projects = await readLocalProjects();
+      const project = { ...projects[id] || {}, id, title, category, imageUrl: imageUrl || void 0, year, media: Array.isArray(media) ? media : void 0, galleryColumns: galleryColumns === 2 ? 2 : 1 };
+      projects[id] = project;
+      await writeLocalProjects(projects);
+      return res.json({ success: true, project });
+    } catch (err) {
+      console.error("Error in PUT /api/projects:", err);
+      return res.status(500).json({ error: err.message || "Internal server error" });
+    }
+  });
+  app.delete("/api/projects/:id", async (req, res) => {
+    try {
+      const projects = await readLocalProjects();
+      const { id } = req.params;
+      if (!Object.prototype.hasOwnProperty.call(projects, id)) return res.status(404).json({ error: "Project not found." });
+      projects[id] = null;
+      await writeLocalProjects(projects);
+      await writeLocalProjectOrder((await readLocalProjectOrder()).filter((item) => item !== id));
+      return res.json({ success: true, id });
+    } catch (err) {
+      console.error("Error in DELETE /api/projects:", err);
       return res.status(500).json({ error: err.message || "Internal server error" });
     }
   });
