@@ -62,6 +62,7 @@ async function startServer() {
   const localBlogsPath = import_path.default.join(process.cwd(), "src", "dynamic_blogs.json");
   const localTestimonialsPath = import_path.default.join(process.cwd(), "src", "dynamic_testimonials.json");
   const localProjectsPath = import_path.default.join(process.cwd(), "src", "dynamic_projects.json");
+  const localProjectsIndexPath = import_path.default.join(process.cwd(), "src", "dynamic_projects_index.json");
   const localProjectsLayoutPath = import_path.default.join(process.cwd(), "src", "dynamic_projects_layout.json");
   let supabaseClient = null;
   function getSupabase() {
@@ -208,6 +209,19 @@ async function startServer() {
   }
   async function writeLocalProjectLayout(layout) {
     await import_fs.default.promises.writeFile(localProjectsLayoutPath, JSON.stringify(layout, null, 2), "utf-8");
+  }
+  async function readLocalProjectIndex() {
+    try {
+      if (!import_fs.default.existsSync(localProjectsIndexPath)) return null;
+      const parsed = JSON.parse(await import_fs.default.promises.readFile(localProjectsIndexPath, "utf-8"));
+      return Array.isArray(parsed?.ids) ? parsed.ids.filter((id) => typeof id === "string") : null;
+    } catch (err) {
+      console.error("Error reading local project index:", err);
+      return null;
+    }
+  }
+  async function writeLocalProjectIndex(ids) {
+    await import_fs.default.promises.writeFile(localProjectsIndexPath, JSON.stringify({ ids }, null, 2), "utf-8");
   }
   app.get("/api/config", async (req, res) => {
     try {
@@ -415,7 +429,8 @@ async function startServer() {
         projects: Object.values(projects).filter(Boolean),
         deletedIds: Object.keys(projects).filter((id) => projects[id] === null),
         order: await readLocalProjectOrder(),
-        layout: await readLocalProjectLayout()
+        layout: await readLocalProjectLayout(),
+        indexIds: await readLocalProjectIndex()
       });
     } catch (err) {
       console.error("Error in GET /api/projects:", err);
@@ -424,7 +439,7 @@ async function startServer() {
   });
   app.post("/api/projects", async (req, res) => {
     try {
-      const { title, category, imageUrl, media, year, galleryColumns } = req.body;
+      const { title, category, imageUrl, media, featuredMediaIndex, year, galleryColumns } = req.body;
       if (!title || !category || !year || !imageUrl && (!Array.isArray(media) || media.length === 0)) {
         return res.status(400).json({ error: "Title, category, year, and either imageUrl or media are required." });
       }
@@ -455,15 +470,26 @@ async function startServer() {
       return res.status(500).json({ error: err.message || "Internal server error" });
     }
   });
+  app.put("/api/projects/index", async (req, res) => {
+    try {
+      const ids = Array.isArray(req.body?.ids) ? req.body.ids.filter((id) => typeof id === "string") : null;
+      if (!ids) return res.status(400).json({ error: "A project ID index array is required." });
+      await writeLocalProjectIndex([...new Set(ids)]);
+      return res.json({ success: true, indexIds: [...new Set(ids)] });
+    } catch (err) {
+      console.error("Error in PUT /api/projects/index:", err);
+      return res.status(500).json({ error: err.message || "Internal server error" });
+    }
+  });
   app.put("/api/projects/:id", async (req, res) => {
     try {
       const { id } = req.params;
-      const { title, category, imageUrl, media, year, galleryColumns } = req.body;
+      const { title, category, imageUrl, media, featuredMediaIndex, year, galleryColumns } = req.body;
       if (!title || !category || !year || !imageUrl && (!Array.isArray(media) || media.length === 0)) {
         return res.status(400).json({ error: "Title, category, year, and either imageUrl or media are required." });
       }
       const projects = await readLocalProjects();
-      const project = { ...projects[id] || {}, id, title, category, imageUrl: imageUrl || void 0, year, media: Array.isArray(media) ? media : void 0, galleryColumns: galleryColumns === 2 ? 2 : 1 };
+      const project = { ...projects[id] || {}, id, title, category, imageUrl: imageUrl || void 0, year, media: Array.isArray(media) ? media : void 0, featuredMediaIndex: Number.isInteger(featuredMediaIndex) && featuredMediaIndex >= 0 ? featuredMediaIndex : void 0, galleryColumns: galleryColumns === 2 ? 2 : 1 };
       projects[id] = project;
       await writeLocalProjects(projects);
       return res.json({ success: true, project });
